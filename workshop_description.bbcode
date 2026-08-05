@@ -47,13 +47,7 @@ Have fun surviving!
 [/table]
 
 [h2]JSON API Integration (Optional)[/h2]
-If you also have the [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3727256572]JSON API[/url] mod installed, a reload endpoint is automatically registered. This lets you reload the welcome note content and bump the version without restarting the server.
-
-Reload content only:
-[code][{"id":"reload","path":"welcomenote/reload"}][/code]
-
-Reload content and bump version (re-delivers to all players):
-[code][{"id":"reload","path":"welcomenote/reload","version":"2"}][/code]
+If you also have the [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3727256572]JSON API[/url] mod installed, a reload endpoint is automatically registered. This lets you reload the welcome note content and bump the version without restarting the server. See the GitHub page for usage details.
 
 [h2]Recommended: Auto-Cleanup[/h2]
 Players may drop the welcome note on the ground. To auto-remove dropped notes, add [b]WelcomeNote.WelcomeNote[/b] to your [b]WorldItemRemovalList[/b] in SandboxVars:
