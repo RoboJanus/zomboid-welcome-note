@@ -1,7 +1,7 @@
 --***********************************************************
 --** Welcome Note - Server Component
 --** Reads welcome-note.txt on server start, caches pages,
---** and sends them to clients on request.
+--** and delivers the note server-side on client request.
 --***********************************************************
 
 if isClient() then return end
@@ -94,11 +94,20 @@ function WelcomeNoteServer.loadFromFile()
         end
     end
 
+    -- Read version from sandbox options
+    WelcomeNoteServer.version = "1"
+    if SandboxVars and SandboxVars.WelcomeNote and SandboxVars.WelcomeNote.NoteVersion then
+        local v = SandboxVars.WelcomeNote.NoteVersion
+        if v ~= "" then
+            WelcomeNoteServer.version = v
+        end
+    end
+
     WelcomeNoteServer.pages = pages
-    logInfo("Cached " .. #pages .. " page(s). Welcome notes will be given to new characters.")
+    logInfo("Cached " .. #pages .. " page(s), version '" .. WelcomeNoteServer.version .. "'. Welcome notes will be given to new characters.")
 end
 
---- Handle client request for welcome note content.
+--- Handle client request for welcome note.
 function WelcomeNoteServer.onClientCommand(module, command, player, args)
     if module ~= "WelcomeNote" then return end
     if command ~= "requestNote" then return end
@@ -108,17 +117,79 @@ function WelcomeNoteServer.onClientCommand(module, command, player, args)
         return
     end
 
-    -- Send pages to the requesting client
-    local responseArgs = {}
-    responseArgs.title = WelcomeNoteServer.title
-    responseArgs.pageCount = #WelcomeNoteServer.pages
-    for i, pageText in ipairs(WelcomeNoteServer.pages) do
-        responseArgs["page" .. i] = pageText
+    -- Check if this player already received the current version (via player modData)
+    local modData = player:getModData()
+    if modData and modData.WelcomeNoteVersion == WelcomeNoteServer.version then
+        return
     end
 
-    sendServerCommand(player, "WelcomeNote", "deliverNote", responseArgs)
-    logInfo("Sent welcome note (" .. #WelcomeNoteServer.pages .. " pages) to " .. tostring(player:getUsername()))
+    -- Add the note server-side (authoritative)
+    local inv = player:getInventory()
+    if not inv then
+        logError("Could not get inventory for " .. tostring(player:getUsername()))
+        return
+    end
+
+    local note = inv:AddItem("Base.Notebook")
+    if not note then
+        logError("Failed to create Notebook for " .. tostring(player:getUsername()))
+        return
+    end
+
+    note:setName(WelcomeNoteServer.title)
+    note:setCustomName(true)
+
+    local status, err = pcall(function()
+        for i, pageText in ipairs(WelcomeNoteServer.pages) do
+            note:addPage(i, pageText)
+        end
+    end)
+
+    if not status then
+        logError("Failed to write pages: " .. tostring(err))
+        return
+    end
+
+    -- Sync to client
+    sendAddItemToContainer(inv, note)
+
+    -- Mark player as having received this version
+    modData.WelcomeNoteVersion = WelcomeNoteServer.version
+
+    -- Tell client to refresh inventory
+    sendServerCommand(player, "WelcomeNote", "noteDelivered", {})
+
+    logInfo("Gave welcome note ('" .. WelcomeNoteServer.title .. "', " .. #WelcomeNoteServer.pages .. " pages) to " ..
+        tostring(player:getUsername()))
 end
 
 Events.OnServerStarted.Add(WelcomeNoteServer.loadFromFile)
 Events.OnClientCommand.Add(WelcomeNoteServer.onClientCommand)
+
+-- Optional JSON API integration (only if JSON API mod is installed)
+Events.OnServerStarted.Add(function()
+    if JsonAPI then
+        JsonAPI.addHandler("welcomenote/reload", function(args)
+            -- Optionally bump the version at runtime
+            if args and args.version then
+                local newVersion = args.version
+                getSandboxOptions():set("WelcomeNote.NoteVersion", newVersion)
+                getSandboxOptions():applySettings()
+                getSandboxOptions():saveServerLuaFile(getServerName())
+                WelcomeNoteServer.version = newVersion
+                if SandboxVars and SandboxVars.WelcomeNote then
+                    SandboxVars.WelcomeNote.NoteVersion = newVersion
+                end
+                logInfo("Version bumped to '" .. newVersion .. "' via JSON API")
+            end
+
+            WelcomeNoteServer.loadFromFile()
+            if WelcomeNoteServer.pages then
+                return '{"reloaded":true,"pages":' .. #WelcomeNoteServer.pages .. ',"version":"' .. WelcomeNoteServer.version .. '"}'
+            else
+                return '{"reloaded":false,"error":"No content loaded"}'
+            end
+        end)
+        logInfo("Registered JSON API endpoint: welcomenote/reload")
+    end
+end)

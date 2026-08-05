@@ -7,7 +7,9 @@ Spawns a customizable welcome note in every new character's inventory. Perfect f
 [*] Automatically gives a readable note to every new character
 [*] Note content loaded from a simple text file on the server
 [*] Multi-page support using [b]<PAGE>[/b] delimiter
-[*] Configurable note title via Sandbox Options
+[*] Configurable note title and version via Sandbox Options
+[*] Version tracking: players only receive the note once per version (bump the version to re-deliver)
+[*] Optional JSON API integration for hot-reloading content without server restart
 [*] Multiplayer compatible (server-to-client architecture)
 [*] No dependencies
 [/list]
@@ -37,12 +39,21 @@ Tips:
 Have fun surviving!
 [/code]
 
-[h2]Limits[/h2]
-[list]
-[*] Maximum [b]20 pages[/b] per note
-[*] Maximum [b]16,384 characters[/b] per page
-[*] Content is cached on server start - changes require a server restart
-[/list]
+[h2]Sandbox Options[/h2]
+[table]
+[tr][th]Option[/th][th]Default[/th][th]Description[/th][/tr]
+[tr][td]Note Title[/td][td]Welcome to the Server![/td][td]The display name of the note in the player's inventory[/td][/tr]
+[tr][td]Note Version[/td][td]1[/td][td]Bump this to re-deliver the note to all players who received an older version[/td][/tr]
+[/table]
+
+[h2]JSON API Integration (Optional)[/h2]
+If you also have the [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3727256572]JSON API[/url] mod installed, a reload endpoint is automatically registered. This lets you reload the welcome note content and bump the version without restarting the server.
+
+Reload content only:
+[code][{"id":"reload","path":"welcomenote/reload"}][/code]
+
+Reload content and bump version (re-delivers to all players):
+[code][{"id":"reload","path":"welcomenote/reload","version":"2"}][/code]
 
 [h2]Recommended: Auto-Cleanup[/h2]
 Players may drop the welcome note on the ground. To auto-remove dropped notes, add [b]WelcomeNote.WelcomeNote[/b] to your [b]WorldItemRemovalList[/b] in SandboxVars:
@@ -51,17 +62,18 @@ Players may drop the welcome note on the ground. To auto-remove dropped notes, a
 WorldItemRemovalList = Base.Hat,Base.Glasses,WelcomeNote.WelcomeNote,
 [/code]
 
-[h2]Sandbox Options[/h2]
-[table]
-[tr][th]Option[/th][th]Default[/th][th]Description[/th][/tr]
-[tr][td]Note Title[/td][td]Welcome to the Server![/td][td]The display name of the note in the player's inventory[/td][/tr]
-[/table]
+[h2]Limits[/h2]
+[list]
+[*] Maximum [b]20 pages[/b] per note
+[*] Maximum [b]16,384 characters[/b] per page
+[*] Content is cached on server start (use JSON API reload endpoint or restart to pick up changes)
+[/list]
 
 [h2]Compatibility[/h2]
 [list]
 [*] Project Zomboid Build 42.20+
 [*] Multiplayer dedicated servers and singleplayer
-[*] No dependencies
+[*] No dependencies (JSON API integration is optional)
 [*] Does not conflict with other mods
 [/list]
 
@@ -77,4 +89,3 @@ Mod ID: welcomenote
 
 [h2]Support[/h2]
 Want to say thanks financially? [url=https://klickalack.com/donate]Donate here[/url].
-

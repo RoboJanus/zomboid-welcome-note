@@ -1,0 +1,3 @@
+RELOADED CONTENT - This was updated without a server restart!
+<PAGE>
+If you see this on a new character, the reload endpoint works.

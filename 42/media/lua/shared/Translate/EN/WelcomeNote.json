@@ -1,4 +1,6 @@
 {
     "WelcomeNote_NoteTitle": "Note Title",
-    "WelcomeNote_NoteTitle_tooltip": "The display name of the welcome note item in the player's inventory."
+    "WelcomeNote_NoteTitle_tooltip": "The display name of the welcome note item in the player's inventory.",
+    "WelcomeNote_NoteVersion": "Note Version",
+    "WelcomeNote_NoteVersion_tooltip": "Bump this value when you update the welcome note content. Players who have already received an older version will get the new one."
 }
