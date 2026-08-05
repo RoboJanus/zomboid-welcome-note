@@ -8,5 +8,5 @@
   "title" "Welcome Note [B42.20]"
   "description" ""
   "changenote" ""
-  "tags" "Build 42;Misc;Multiplayer"
+  "tags" "Build 42,Misc,Multiplayer"
 }
