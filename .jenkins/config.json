@@ -3,7 +3,7 @@
     "welcome-note": {
       "type": "steam_workshop",
       "build_script": "build.sh",
-      "when_changed": ["media/*", "42/*", "mod.info", "workshop.txt", "build.sh", "img/*"]
+      "when_changed": ["media/*", "42/*", "mod.info", "workshop.txt", "workshop_description.bbcode", "build.sh", "img/*"]
     }
   },
   "release": {
