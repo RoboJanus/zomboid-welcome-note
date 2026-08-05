@@ -16,7 +16,7 @@ Spawns a customizable welcome note in every new character's inventory. Perfect f
 [olist]
 [*] Subscribe and add [b]welcomenote[/b] to your server's [b]Mods=[/b] line (with the standard backslash prefix)
 [*] Create a text file at [b]<cachedir>/Lua/welcome-note.txt[/b] with your note content
-[*] (Optional) Set the note title in Sandbox Options under "Welcome Note"
+[*] (Optional) Set the note title in Sandbox Options under [b]Welcome Note[/b]
 [*] Restart the server
 [/olist]
 
@@ -48,7 +48,7 @@ Have fun surviving!
 Players may drop the welcome note on the ground. To auto-remove dropped notes, add [b]WelcomeNote.WelcomeNote[/b] to your [b]WorldItemRemovalList[/b] in SandboxVars:
 
 [code]
-WorldItemRemovalList = "Base.Hat,Base.Glasses,WelcomeNote.WelcomeNote",
+WorldItemRemovalList = Base.Hat,Base.Glasses,WelcomeNote.WelcomeNote,
 [/code]
 
 [h2]Sandbox Options[/h2]
