@@ -8,5 +8,10 @@
   "title" "Welcome Note [B42.20]"
   "description" ""
   "changenote" ""
-  "tags" "Build 42,Misc,Multiplayer"
+  "kvtags"
+  {
+    "0" "Build 42"
+    "1" "Misc"
+    "2" "Multiplayer"
+  }
 }
