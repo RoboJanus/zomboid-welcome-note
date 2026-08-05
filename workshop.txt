@@ -5,7 +5,7 @@
   "contentfolder" ""
   "previewfile" ""
   "visibility" "0"
-  "title" "Welcome Note [B42]"
+  "title" "Welcome Note [B42.20+]"
   "description" ""
   "changenote" ""
 }
