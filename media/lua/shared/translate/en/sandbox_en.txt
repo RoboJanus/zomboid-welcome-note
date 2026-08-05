@@ -1,6 +1,0 @@
-{
-    "WelcomeNote_NoteTitle": "Note Title",
-    "WelcomeNote_NoteTitle_tooltip": "The display name of the welcome note item in the player's inventory.",
-    "WelcomeNote_NoteText": "Note Text",
-    "WelcomeNote_NoteText_tooltip": "The text content of the welcome note. Use <PAGE> to separate multiple pages."
-}

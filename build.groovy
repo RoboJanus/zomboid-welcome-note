@@ -1,1 +1,1 @@
-buildInit()
+cicdPipeline()

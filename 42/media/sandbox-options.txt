@@ -1,0 +1,9 @@
+VERSION = 1,
+
+option WelcomeNote.NoteTitle
+{
+    type = string,
+    default = Welcome to the Server!,
+    page = WelcomeNote,
+    translation = WelcomeNote_NoteTitle,
+}

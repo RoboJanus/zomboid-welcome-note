@@ -1,0 +1,79 @@
+[h1]Welcome Note[/h1]
+
+Spawns a customizable welcome note in every new character's inventory. Perfect for communicating server rules, tips, community info, or lore to new players.
+
+[h2]Features[/h2]
+[list]
+[*] Automatically gives a readable note to every new character
+[*] Note content loaded from a simple text file on the server
+[*] Multi-page support using [b]<PAGE>[/b] delimiter
+[*] Configurable note title via Sandbox Options
+[*] Multiplayer compatible (server→client architecture)
+[*] No dependencies
+[/list]
+
+[h2]Setup[/h2]
+[olist]
+[*] Subscribe and add [b]\welcomenote[/b] to your server's [b]Mods=[/b] line
+[*] Create a text file at [b]<cachedir>/Lua/welcome-note.txt[/b] with your note content
+[*] (Optional) Set the note title in Sandbox Options under "Welcome Note"
+[*] Restart the server
+[/olist]
+
+[h2]File Format[/h2]
+Place your note content in [b]Lua/welcome-note.txt[/b] inside your server's cache directory. Use [b]<PAGE>[/b] to separate pages:
+
+[code]
+Welcome to our server!
+
+Rules:
+- Be polite
+- No griefing
+<PAGE>
+Tips:
+- Generators need fuel
+- Join our Discord at discord.gg/example
+<PAGE>
+Have fun surviving!
+[/code]
+
+[h2]Limits[/h2]
+[list]
+[*] Maximum [b]20 pages[/b] per note
+[*] Maximum [b]16,384 characters[/b] per page
+[*] Content is cached on server start — changes require a server restart
+[/list]
+
+[h2]Recommended: Auto-Cleanup[/h2]
+Players may drop the welcome note on the ground. To auto-remove dropped notes, add [b]WelcomeNote.WelcomeNote[/b] to your [b]WorldItemRemovalList[/b] in SandboxVars:
+
+[code]
+WorldItemRemovalList = "Base.Hat,Base.Glasses,WelcomeNote.WelcomeNote",
+[/code]
+
+[h2]Sandbox Options[/h2]
+[table]
+[tr][th]Option[/th][th]Default[/th][th]Description[/th][/tr]
+[tr][td]Note Title[/td][td]Welcome to the Server![/td][td]The display name of the note in the player's inventory[/td][/tr]
+[/table]
+
+[h2]Compatibility[/h2]
+[list]
+[*] Project Zomboid Build 42.20+
+[*] Multiplayer dedicated servers and singleplayer
+[*] No dependencies
+[*] Does not conflict with other mods
+[/list]
+
+[h2]Source Code[/h2]
+[url=https://github.com/RoboJanus/zomboid-welcome-note]GitHub[/url]
+
+[h2]License[/h2]
+Copyright (c) 2026 RoboJanus LLC. All rights reserved.
+You may use, copy, and distribute this mod for any purpose, including commercial use, provided that: the copyright notice is included, the mod is not modified, and the mod is not sold as a standalone product.
+
+Workshop ID: XXXXXXXXXX
+Mod ID: welcomenote
+
+[h2]Support[/h2]
+Want to say thanks financially? [url=https://klickalack.com/donate]Donate here[/url].

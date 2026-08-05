@@ -1,0 +1,13 @@
+module WelcomeNote {
+    item WelcomeNote {
+        DisplayCategory = Literature,
+        ItemType = base:literature,
+        Weight = 0.1,
+        Icon = Note1,
+        CanBeWrite = true,
+        PageToWrite = 20,
+        StaticModel = Note1,
+        WorldStaticModel = Note1,
+        ReadType = newspaper,
+    }
+}
