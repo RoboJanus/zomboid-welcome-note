@@ -1,0 +1,54 @@
+# Local PZ dedicated server for Welcome Note development and pre-workshop testing.
+#
+# Full process: test/tests.md
+#
+# Image: local zomboid:dev rebuilt from klickalack/zomboid/Dockerfile
+#   (cd ../klickalack && docker build -f zomboid/Dockerfile -t zomboid:dev .)
+#
+# Quick start:
+#   cp secrets.env.example secrets.env   # set ADMIN_PASSWORD and RCON_PASSWORD
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml logs -f pz-dev
+#
+# Connect the PZ client to localhost:16261 (password = ADMIN_PASSWORD).
+#
+# Lua changes: restart the container so DEPLOY_DEV_MODS recopies the mod:
+#   docker compose -f docker-compose.dev.yml restart pz-dev
+#
+# Fresh world (keeps the ~7GB dedicated-server install):
+#   docker compose -f docker-compose.dev.yml down
+#   docker volume rm welcomenote-dev_pz-dev-config
+#   docker compose -f docker-compose.dev.yml up -d
+
+name: welcomenote-dev
+
+services:
+  pz-dev:
+    image: zomboid:dev
+    container_name: pz-welcome-note-dev
+    ports:
+      - "16261:16261/udp"
+      - "16262:16262/udp"
+      - "27015:27015/tcp"
+    environment:
+      - DEPLOY_DEV_MODS=true
+      - SERVER_NAME=KLICKALACK
+      - MEMORY_XMX_GB=4
+      - MEMORY_XMS_GB=2
+      - ADMIN_USERNAME=admin
+      - UPDATE_ON_START=true
+    env_file:
+      - secrets.env
+    volumes:
+      # Full repo: klickalack entrypoint copies 42/media (or flat media/) into workshop layout.
+      - ./:/zomboid/dev-mods/welcome-note
+      # Local-mod fallback so the client/server can load the same tree from cachedir.
+      - ./:/project-zomboid-config/mods/welcomenote
+      - ./test:/project-zomboid-config/Server
+      - ./test/Lua:/project-zomboid-config/Lua
+      - pz-dev-data:/project-zomboid
+      - pz-dev-config:/project-zomboid-config
+
+volumes:
+  pz-dev-data:
+  pz-dev-config:

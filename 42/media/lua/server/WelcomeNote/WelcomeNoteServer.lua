@@ -2,14 +2,26 @@
 --** Welcome Note - Server Component
 --** Reads welcome-note.txt on server start, caches pages,
 --** and delivers the note server-side on client request.
+--**
+--** Delivery rules:
+--**   - New characters receive the current welcome note once
+--**   - Existing characters receive it again only when NoteVersion changes
+--**   - Relogs of the same character do not receive another copy
 --***********************************************************
 
-if isClient() then return end
+-- Run on dedicated server, listen-server host, and singleplayer.
+-- Skip on multiplayer clients (they request via client command).
+if isClient() and not isServer() then return end
 
 local WelcomeNoteServer = {}
 WelcomeNoteServer.pages = nil
 WelcomeNoteServer.title = "Welcome to the Server!"
+WelcomeNoteServer.version = "1"
+WelcomeNoteServer.received = nil
+-- username -> { version = "1", player = IsoPlayer } for this server session only
+WelcomeNoteServer.deliveredThisSession = {}
 
+local RECEIVED_MODDATA_KEY = "WelcomeNote_Received"
 local LOG_PREFIX = "[WelcomeNote] "
 
 local function logInfo(msg)
@@ -22,6 +34,92 @@ end
 
 local function logWarn(msg)
     print(LOG_PREFIX .. "WARNING: " .. msg)
+end
+
+--- Normalize sandbox / persisted version values to a comparable Lua string.
+-- Kahlua `==` is unreliable between Java strings and Lua strings, which made
+-- the previous per-connect gate fail and re-deliver the note every login.
+local function normalizeVersion(value)
+    if value == nil then return "" end
+    local asString = tostring(value)
+    if asString == "" or asString == "nil" or asString == "null" then return "" end
+    return asString
+end
+
+local function playerKey(player)
+    if not player then return "" end
+    return tostring(player:getUsername() or "")
+end
+
+function WelcomeNoteServer.getReceivedTable()
+    if not WelcomeNoteServer.received then
+        WelcomeNoteServer.received = ModData.getOrCreate(RECEIVED_MODDATA_KEY)
+    end
+    return WelcomeNoteServer.received
+end
+
+function WelcomeNoteServer.refreshVersion()
+    local version = "1"
+    if SandboxVars and SandboxVars.WelcomeNote and SandboxVars.WelcomeNote.NoteVersion ~= nil then
+        local sandboxVersion = normalizeVersion(SandboxVars.WelcomeNote.NoteVersion)
+        if sandboxVersion ~= "" then
+            version = sandboxVersion
+        end
+    elseif WelcomeNoteServer.version then
+        local cached = normalizeVersion(WelcomeNoteServer.version)
+        if cached ~= "" then
+            version = cached
+        end
+    end
+    WelcomeNoteServer.version = version
+    return version
+end
+
+function WelcomeNoteServer.hasReceivedCurrentVersion(player)
+    local version = WelcomeNoteServer.refreshVersion()
+    local key = playerKey(player)
+    if key ~= "" then
+        local received = WelcomeNoteServer.getReceivedTable()
+        if normalizeVersion(received[key]) == version then
+            return true
+        end
+    end
+
+    -- Fallback for characters that were marked on player modData only
+    local modData = player and player:getModData()
+    if modData and normalizeVersion(modData.WelcomeNoteVersion) == version then
+        return true
+    end
+
+    return false
+end
+
+function WelcomeNoteServer.markReceived(player)
+    local version = WelcomeNoteServer.refreshVersion()
+    local key = playerKey(player)
+    if key ~= "" then
+        WelcomeNoteServer.getReceivedTable()[key] = version
+    end
+
+    local modData = player and player:getModData()
+    if modData then
+        modData.WelcomeNoteVersion = version
+        if player.transmitModData then
+            player:transmitModData()
+        end
+    end
+end
+
+function WelcomeNoteServer.clearReceived(player)
+    local key = playerKey(player)
+    if key ~= "" then
+        WelcomeNoteServer.getReceivedTable()[key] = nil
+    end
+
+    local modData = player and player:getModData()
+    if modData then
+        modData.WelcomeNoteVersion = nil
+    end
 end
 
 --- Read the welcome note text file and cache the pages.
@@ -94,45 +192,63 @@ function WelcomeNoteServer.loadFromFile()
         end
     end
 
-    -- Read version from sandbox options
-    WelcomeNoteServer.version = "1"
-    if SandboxVars and SandboxVars.WelcomeNote and SandboxVars.WelcomeNote.NoteVersion then
-        local v = SandboxVars.WelcomeNote.NoteVersion
-        if v ~= "" then
-            WelcomeNoteServer.version = v
-        end
-    end
-
+    WelcomeNoteServer.refreshVersion()
     WelcomeNoteServer.pages = pages
-    logInfo("Cached " .. #pages .. " page(s), version '" .. WelcomeNoteServer.version .. "'. Welcome notes will be given to new characters.")
+    logInfo("Cached " .. #pages .. " page(s), version '" .. WelcomeNoteServer.version .. "'. Welcome notes will be given to new characters and when the version changes.")
 end
 
---- Handle client request for welcome note.
-function WelcomeNoteServer.onClientCommand(module, command, player, args)
-    if module ~= "WelcomeNote" then return end
-    if command ~= "requestNote" then return end
+--- True if this specific player object already received the current version this session.
+-- Username-only checks cannot distinguish a relog from a new character after death.
+local function alreadyDeliveredToThisPlayer(player, version)
+    local key = playerKey(player)
+    if key == "" then return false end
+    local entry = WelcomeNoteServer.deliveredThisSession[key]
+    if not entry then return false end
+    if normalizeVersion(entry.version) ~= version then return false end
+    return entry.player == player
+end
+
+local function rememberSessionDelivery(player, version)
+    local key = playerKey(player)
+    if key == "" then return end
+    WelcomeNoteServer.deliveredThisSession[key] = { version = version, player = player }
+end
+
+--- Deliver the cached welcome note if this character has not already received the current version.
+-- forceNewCharacter: true for OnNewGame so a replacement character still gets the note.
+function WelcomeNoteServer.tryDeliver(player, forceNewCharacter)
+    if not player then return end
+    if player:isDead() then return end
+
+    local username = tostring(player:getUsername() or "unknown")
 
     if not WelcomeNoteServer.pages then
-        logWarn("Client " .. tostring(player:getUsername()) .. " requested note but no content cached.")
+        logWarn("Client " .. username .. " requested note but no content cached.")
         return
     end
 
-    -- Check if this player already received the current version (via player modData)
-    local modData = player:getModData()
-    if modData and modData.WelcomeNoteVersion == WelcomeNoteServer.version then
+    local version = WelcomeNoteServer.refreshVersion()
+    if alreadyDeliveredToThisPlayer(player, version) then
+        WelcomeNoteServer.markReceived(player)
+        logInfo("Skipping welcome note for " .. username .. " (already delivered this session)")
         return
     end
 
-    -- Add the note server-side (authoritative)
+    if not forceNewCharacter and WelcomeNoteServer.hasReceivedCurrentVersion(player) then
+        rememberSessionDelivery(player, version)
+        logInfo("Skipping welcome note for " .. username .. " (already received version '" .. version .. "')")
+        return
+    end
+
     local inv = player:getInventory()
     if not inv then
-        logError("Could not get inventory for " .. tostring(player:getUsername()))
+        logError("Could not get inventory for " .. username)
         return
     end
 
     local note = inv:AddItem("Base.Notebook")
     if not note then
-        logError("Failed to create Notebook for " .. tostring(player:getUsername()))
+        logError("Failed to create Notebook for " .. username)
         return
     end
 
@@ -150,21 +266,56 @@ function WelcomeNoteServer.onClientCommand(module, command, player, args)
         return
     end
 
-    -- Sync to client
     sendAddItemToContainer(inv, note)
+    WelcomeNoteServer.markReceived(player)
+    rememberSessionDelivery(player, version)
 
-    -- Mark player as having received this version
-    modData.WelcomeNoteVersion = WelcomeNoteServer.version
+    if isServer() then
+        sendServerCommand(player, "WelcomeNote", "noteDelivered", {})
+    end
 
-    -- Tell client to refresh inventory
-    sendServerCommand(player, "WelcomeNote", "noteDelivered", {})
-
-    logInfo("Gave welcome note ('" .. WelcomeNoteServer.title .. "', " .. #WelcomeNoteServer.pages .. " pages) to " ..
-        tostring(player:getUsername()))
+    logInfo("Gave welcome note ('" .. WelcomeNoteServer.title .. "', " .. #WelcomeNoteServer.pages .. " pages, version '" .. version .. "') to " .. username)
 end
 
+function WelcomeNoteServer.onClientCommand(module, command, player, args)
+    if module ~= "WelcomeNote" then return end
+    if command ~= "requestNote" then return end
+    WelcomeNoteServer.tryDeliver(player)
+end
+
+function WelcomeNoteServer.onPlayerDeath(player)
+    if not player then return end
+    local username = tostring(player:getUsername() or "unknown")
+    local key = playerKey(player)
+    if key ~= "" then
+        WelcomeNoteServer.deliveredThisSession[key] = nil
+    end
+    WelcomeNoteServer.clearReceived(player)
+    logInfo("Cleared welcome note receipt for " .. username .. " (character died; a new character will receive the current note)")
+end
+
+--- Brand-new characters (including after death) always receive the current note.
+function WelcomeNoteServer.onNewGame(player, square)
+    if not player then return end
+    WelcomeNoteServer.tryDeliver(player, true)
+end
+
+function WelcomeNoteServer.onInitGlobalModData()
+    WelcomeNoteServer.received = ModData.getOrCreate(RECEIVED_MODDATA_KEY)
+end
+
+Events.OnInitGlobalModData.Add(WelcomeNoteServer.onInitGlobalModData)
 Events.OnServerStarted.Add(WelcomeNoteServer.loadFromFile)
 Events.OnClientCommand.Add(WelcomeNoteServer.onClientCommand)
+Events.OnPlayerDeath.Add(WelcomeNoteServer.onPlayerDeath)
+Events.OnNewGame.Add(WelcomeNoteServer.onNewGame)
+
+-- Singleplayer has no client-command round trip; deliver on player load directly.
+if not isServer() then
+    Events.OnCreatePlayer.Add(function(playerIndex, player)
+        WelcomeNoteServer.tryDeliver(player)
+    end)
+end
 
 -- Optional JSON API integration (only if JSON API mod is installed)
 Events.OnServerStarted.Add(function()
@@ -172,7 +323,7 @@ Events.OnServerStarted.Add(function()
         JsonAPI.addHandler("welcomenote/reload", function(args)
             -- Optionally bump the version at runtime
             if args and args.version then
-                local newVersion = args.version
+                local newVersion = normalizeVersion(args.version)
                 getSandboxOptions():set("WelcomeNote.NoteVersion", newVersion)
                 getSandboxOptions():applySettings()
                 getSandboxOptions():saveServerLuaFile(getServerName())

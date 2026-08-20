@@ -13,6 +13,17 @@ A server-side mod that spawns a customizable welcome note in every new character
 - Works in multiplayer and singleplayer
 - Safe to uninstall (uses vanilla Notebook item)
 
+## Local testing (before Workshop publish)
+
+Run the dedicated-server test loop in [`test/tests.md`](test/tests.md). Minimum before publish: Session 1 (new character, relog, death) and Session 2 (version bump).
+
+```bash
+cp secrets.env.example secrets.env   # set ADMIN_PASSWORD and RCON_PASSWORD
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml logs -f pz-dev
+# Connect the PZ client (with this repo enabled as a local mod) to localhost:16261
+```
+
 ## Installation
 
 1. Subscribe on [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3777821988)
