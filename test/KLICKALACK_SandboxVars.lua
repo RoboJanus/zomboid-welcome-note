@@ -1018,12 +1018,7 @@ SandboxVars = {
         Glassmaking = 1.0,
     },
     WelcomeNote = {
-        NoteTitle = "Welcome to Klickalack! READ ME!",
-        NoteVersion = "3",
-    },
-    JsonAPI = {
-        VerboseLogging = false,
-        -- Min: 1 Max: 3600 Default: 2
-        PollInterval = 2,
+        NoteTitle = "Welcome to the Server!",
+        NoteVersion = "1",
     },
 }

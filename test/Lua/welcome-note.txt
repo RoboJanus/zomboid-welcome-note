@@ -1,0 +1,13 @@
+Welcome to the test server!
+
+This is page 1 of the welcome note.
+<PAGE>
+This is page 2.
+
+Rules:
+- Be polite
+- No griefing
+<PAGE>
+This is page 3.
+
+Have fun surviving!

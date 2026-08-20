@@ -1,5 +1,5 @@
 name=Welcome Note
-modversion=1.0.0
+modversion=1.0.1
 id=welcomenote
 description=Spawns a customizable welcome note in new characters' inventories. Perfect for server rules, tips, or lore.
 url=https://github.com/RoboJanus/zomboid-welcome-note

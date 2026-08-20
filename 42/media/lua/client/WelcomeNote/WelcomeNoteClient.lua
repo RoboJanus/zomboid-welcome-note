@@ -1,7 +1,9 @@
 --***********************************************************
 --** Welcome Note - Client Component
---** On character creation, requests note from server.
---** On delivery confirmation, refreshes inventory UI.
+--** On every character load, asks the server whether this
+--** character should receive the current welcome note.
+--** The server delivers only to new characters and when
+--** NoteVersion has changed. On delivery, refresh inventory UI.
 --***********************************************************
 
 if not isClient() then return end
@@ -15,7 +17,7 @@ local function logInfo(msg)
     print(LOG_PREFIX .. msg)
 end
 
---- Called when a new character is created. Requests note from the server.
+--- Called whenever a local player loads into the world (new or existing).
 function WelcomeNoteClient.onCreatePlayer(playerIndex, player)
     if not player then return end
     logInfo("Character loaded, requesting welcome note from server...")

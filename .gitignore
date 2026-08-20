@@ -1,4 +1,3 @@
 secrets.env
 content/
 preview.png
-docker-compose.dev.yml
